@@ -1,0 +1,32 @@
+cameras:
+  - id: 0
+    name: ZWO ASI174MM
+    settings:
+      Gain: 178
+      Exposure: 12200
+      Offset: 1
+      BandWidth: 100
+      Flip: 0
+      AutoExpMaxGain: 200
+      AutoExpMaxExpMS: 30000
+      AutoExpTargetBrightness: 100
+      HighSpeedMode: 1
+
+  - id: 1
+    name: ZWO ASI676MC
+    settings:
+      Gain: 258
+      Exposure: 55000
+      Offset: 1
+      BandWidth: 90
+      Flip: 0
+      AutoExpMaxGain: 180
+      AutoExpMaxExpMS: 20000
+      AutoExpTargetBrightness: 110
+      HighSpeedMode: 1
+      WB_R: 50
+      WB_B: 75
+
+    
+
+
