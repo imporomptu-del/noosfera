@@ -26,7 +26,7 @@ def on_pad_added(element, pad, next_element):
                 else:
                     print(f"✗ Failed to link video stream: {result}")
 
-def create_pipeline(video_file, use_gpu=True):
+def create_pipeline(video_file, use_gpu=True, pipeline_generation = 0):
     """
     Create a video playback pipeline with optional GPU acceleration
     decoder
@@ -44,7 +44,7 @@ def create_pipeline(video_file, use_gpu=True):
         tuple: (pipeline, elements_dict)
     """
 
-    pipeline = Gst.Pipeline.new("video-player")
+    pipeline = Gst.Pipeline.new(f"rec_pipeline_{pipeline_generation:5d}" )
     filesrc = Gst.ElementFactory.make("filesrc", "source")
     qtdemux = Gst.ElementFactory.make("qtdemux", "demuxer")
     h264parse = Gst.ElementFactory.make("h264parse", "parser")
@@ -106,7 +106,7 @@ def create_pipeline(video_file, use_gpu=True):
     filesrc.set_property("location", video_file)
     splitmux.set_property("muxer-factory", "mp4mux")
     splitmux.set_property("max-size-time", 5 * 1_000_000_000)  # 5 min
-    splitmux.set_property("location", "chunk_%05d.mp4")
+    splitmux.set_property("location", f"chunk_{pipeline_generation:2d}_%05d.mp4")
 
     # Set rotation 0=none, 1=90°CW, 2=180°, 3=270°CW, 4=h-flip, 5=v-flip
     videoflip.set_property("method", 3)
@@ -152,21 +152,19 @@ def create_pipeline(video_file, use_gpu=True):
 
     print("Pipeline construction complete")
 
-    return pipeline, elements
+    return pipeline
 
-def print_pipeline_info(elements):
+def print_pipeline_info(pipeline):
     """
     Print negotiated formats for all elements
-
-    Args:
-        elements: Dictionary of pipeline elements
     """
+    elements = iterate_elements(pipeline)
 
     print("\n" + "="*60)
     print("Pipeline Negotiated Formats:")
     print("="*60)
 
-    for name, elem in elements.items():
+    for elem in elements:
         # Check source pads
         for pad in elem.srcpads:
             caps = pad.get_current_caps()
@@ -175,7 +173,7 @@ def print_pipeline_info(elements):
                 caps_name = structure.get_name()
 
                 # Extract key info
-                info = f"{name}:src → {caps_name}"
+                info = f"{elem.name}:src → {caps_name}"
 
                 if structure.has_field("width") and structure.has_field("height"):
                     width = structure.get_int("width")[1]
@@ -191,12 +189,20 @@ def print_pipeline_info(elements):
     print("="*60 + "\n")
 
 def print_pipeline(pipeline):
+    for element in iterate_elements(pipeline):
+        print(f"• {element.name} ({element.__class__.__name__})")
+
+
+def iterate_elements(pipeline):
+    """Convert GStreamer iterator to Python list"""
+    elements = []
     it = pipeline.iterate_elements()
+
     done = False
     while not done:
         res, element = it.next()
         if res == Gst.IteratorResult.OK:
-            print(f"• {element.name} ({element.__class__.__name__})")
+            elements.append(element)
         elif res == Gst.IteratorResult.DONE:
             done = True
         elif res == Gst.IteratorResult.RESYNC:
@@ -204,3 +210,5 @@ def print_pipeline(pipeline):
         elif res == Gst.IteratorResult.ERROR:
             print("Iterator error")
             done = True
+
+    return elements
